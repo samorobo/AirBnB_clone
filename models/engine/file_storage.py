@@ -33,4 +33,4 @@ class FileStorage:
 
                 FileStorage.__object = new_dict
         except FileNotFoundError:
-            pass
+            return 

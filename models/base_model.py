@@ -1,5 +1,7 @@
 import uuid
 import datetime
+import models
+
 class BaseModel:
     def __init__(self, *args, **kwargs):
 
@@ -7,6 +9,7 @@ class BaseModel:
         self.id = str(uuid.uuid4())
         self.created_at = datetime.now()
         self.updated_at = datetime.now()
+        models.storage.new(self)
 
         if len(kwargs) != 0:
             for key, value in kwargs.items:
@@ -17,6 +20,7 @@ class BaseModel:
 
     def save(self):
         self.updated_at = datetime.now()
+        models.storage.save()
 
     def to_dict(self):
         to_dict = self.__dict__
