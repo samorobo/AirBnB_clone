@@ -1,5 +1,9 @@
-from models.base_model import BaseModel
+'''file_storage.py
+'''
+
 import json
+from models.base_model import BaseModel
+from models.user import User
 
 
 class FileStorage:
@@ -10,27 +14,40 @@ class FileStorage:
         return FileStorage.__objects
 
     def new(self, obj):
-        key = f"{obj.__class__.name__}.{obj.id}"
+        key = f"{obj.__class__.__name__}.{obj.id}"
         FileStorage.__objects[key] = obj
 
     def save(self):
         to_dict = {}
         for key, obj in FileStorage.__objects.items():
-            to_dict[key] = obj.to_dict
+            to_dict[key] = obj.to_dict()
 
         with open(FileStorage.__file_path, "w") as f:
-            json.dump(to_dict, f)
+            json.dump(to_dict, f, indent=4)
 
     def reload(self):
         try:
-            with open(FileStorage.__file_path, 'r') as file:
-                dict = json.load(file)
+            with open(FileStorage.__file_path, "r") as f:
+                _dict = json.load(f)
 
-                new_dict = {}
-                for obj_name, obj_details in dict.items():
-                    obj = BaseModel(**obj_details)
-                    new_dict[obj_name] = obj
+            new_dict = {}
+            for obj_name, obj_details in _dict.items():
+                class_name = obj_name.split(".")[0]
+                obj = eval(class_name)(**obj_details)
+                new_dict[obj_name] = obj
 
-                FileStorage.__object = new_dict
+            FileStorage.__objects = new_dict
         except FileNotFoundError:
-            return 
+            pass
+
+    def delete(self, obj):
+        class_name = obj.__class__.__name__
+        id = obj.id
+        key = f"{class_name}.{id}"
+
+        if key in FileStorage.__objects:
+            del FileStorage.__objects[key]
+            self.save()
+            return True
+
+        return False
