@@ -1,5 +1,7 @@
+#!/usr/bin/python3
+
 '''user informattion'''
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class User(BaseModel):
     '''creating a user class'''
