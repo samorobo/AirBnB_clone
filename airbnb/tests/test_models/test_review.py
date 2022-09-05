@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-"""Defines unittests for models/review.py.
-
+"""
+Defines unittests for models/review.py.
 Unittest classes:
     TestReview_instantiation
     TestReview_save
@@ -198,3 +198,4 @@ class TestReview_to_dict(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    unittest.main()

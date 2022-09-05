@@ -1,191 +1,184 @@
 #!/usr/bin/python3
-
+"""a program called 'console.py' that contains the entry
+point of the command interpreter """
 import cmd
-from models.state import State
-from models.city import City
-from models.place import Place
-from models.amenity import Amenity
-from models.review import Review
-import re
 from models.base_model import BaseModel
 from models import storage
+from models.engine.file_storage import FileStorage
 from models.user import User
+from models.city import City
+from models.place import Place
+from models.review import Review
+from models.state import State
+from models.amenity import Amenity
+
 
 class HBNBCommand(cmd.Cmd):
-    prompt = "(hbnb)"
-    model_list = ["Basemodel", "User", "City", "State", "Place", "Amenity", "Review"]
+    """cmd class 'HBNBCommand(cmd.Cmd)' """
+    prompt = "(hbnb) "
 
-    str_dict = None
+    class_list = ["BaseModel", "Amenity", "User", "City", "Place",
+                  "Review", "State"]
 
     def precmd(self, line):
-        if '.' in line:
-            if '{' in line:
-                dict_ = re.search("{([^}]*)}", line).group(0)
-                HBNBCommand.str_dict = eval(dict_)
-                pass
-
-            line_arg = line.replace('.', ' ').replace(', ', ' ').replace('(', ' ').replace(')', ' ')
-
+        """When precmd() is called, the 'line' is stripped of [, . ()"] then
+        joined and passed to the interpreter"""
+        if "." in line:
+            line_arg = line.replace('.', ' ').replace(',', ' ')\
+                .replace('(', ' ').replace('"', '').replace(')', ' ')
             line_arg = line_arg.split()
             line_arg[0], line_arg[1] = line_arg[1], line_arg[0]
-            line = ' '.join(line_arg)
+            line = " ".join(line_arg)
         return cmd.Cmd().precmd(line)
 
-    def do_quit(self, args):
-        """
-        This is command quits the interpreter
-        """
+    def do_quit(self, line):
+        """Quit command to exit the program\n"""
         return True
 
-    def do_EOF(self, args):
-        """
-        This command quits the interpreter
-        """
+    def do_EOF(self, line):
+        """Quit command to exit the program\n"""
         return True
 
     def emptyline(self):
-        return False
-
-    def onecmd(self, args):
-        if args == "quit":
-            return self.do_quit(args)
-        elif args == "EOF":
-            return self.do_EOF(args)
-        else:
-            cmd.Cmd.onecmd(self, args)
+        """prevents executing last command when enter
+        is pressed without a new command/argument"""
+        pass
 
     @classmethod
-    def handle_errors(cls, args, **kwargs):
-        if all in kwargs.value():
-            if not args:
+    def error_handler(cls, line, **kwargs):
+        """Handling all errors in HBNBCommand class"""
+        if "all" in kwargs.values():
+            if not line:
                 return False
-
-        if not args:
+        if not line:
             print("** class name missing **")
             return True
         else:
-            args = args.split(" ") #args becomes a list
+            args = line.split(" ")
 
-            n = len(args)
-            if args[0] not in HBNBCommand.model_list:
-                print("** class doesn't exist **")
-                return True
+        if args[0] not in HBNBCommand.class_list:
+            print("** class doesn't exist **")
+            return True
 
-            if 'com' not in kwargs:
-                return False
-
-            for arg in kwargs.values():
-                if arg in ["show", "destroy"]:
-                    if n < 2:
-                        print("** instance id missing **")
-                        return True
-
-                if arg == "update":
-                    if n < 2:
-                        print("** instance id missing **")
-                        return True
-                    elif n < 3:
-                        print("** attribute name missing **")
-                        return True
-                    elif n < 4:
-                        print("** value missing **")
-                        return True
-
+        n = len(args)
+        if "command" not in kwargs:
             return False
+        for arg in kwargs.values():
+            if arg in ["show", "destroy", "update"]:
+                if n < 2:
+                    print("** instance id missing **")
+                    return True
+            if arg == "update":
+                if n < 3:
+                    print("** attribute name missing **")
+                    return True
+                elif n < 4:
+                    print("** value missing **")
+                    return True
+        return False
 
-
-
-    def do_create(self, args):
-        error = HBNBCommand.handle_errors(args)
-
-        if error:
+    def do_create(self, line):
+        """Creates a new instance of the class and saves
+        it (to the JSON file) and prints the id"""
+        err = HBNBCommand.error_handler(line)
+        if err:
             return
+        my = eval(line)()
+        my.save()
+        print(my.id)
 
-        obj = eval(args)()
-        obj.save()
-        print(obj.id)
-
-    def do_show(self, args):
-        error = HBNBCommand.handle_errors(args, command="show")
-        if error:
+    def do_show(self, line):
+        """prints the string representation of an instance
+        based on the class name and id"""
+        err = HBNBCommand.error_handler(line, command="show")
+        if err:
             return
-
-        args = args.split(" ")
-
-        objects = storage.all()
-        key = ".".join(args)
-        obj = objects.get(key)
+        arg = line.split(" ")
+        key = f"{arg[0]}.{arg[1]}"
+        store = storage.all()
+        obj = store.get(key)
         if obj:
             print(obj)
         else:
-            print("** instance id missing **")
+            print("** no instance found **")
 
-    def do_destroy(self, args):
-        error = HBNBCommand.handle_errors(args, com="destroy")
-        if error:
+    def do_destroy(self, line):
+        """Deletes an instance based on the class name and id
+        (save the change into the JSON file)"""
+        err = HBNBCommand.error_handler(line, command="destroy")
+        if err:
             return
-
-        args = args.split()
-        key = f"{args[0]}.{args[1]}"
-        objects = storage.all()
-
-        if key in objects and storage.delete(objects[key]):
-            pass
         else:
-            print("** instance id not found **")
+            arg = line.split(" ")
+            key = ".".join(arg)
+            store = storage.all()
+            if key in store:
+                del storage.all()[key]
+                storage.save()
+            else:
+                print("** no instance found **")
 
-    def do_all(self, args):
-        error = HBNBCommand.handle_errors(args, com="all")
+    def do_all(self, line):
+        """ prints all string representations of all instances
+        based on or not the class name and id """
 
-        if error:
+        err = HBNBCommand.error_handler(line, command="all")
+        if err:
             return
 
-        args = args.split(" ")
-
+        args = line.split(" ")
         objects = storage.all()
-
         if args[0] == "":
-            for obj in objects.value:
+            for obj in objects.values():
                 print(obj)
+
         else:
             for key in objects:
                 k = key.split(".")
-                if key[0] == args[0]:
+                if k[0] == args[0]:
                     print(objects[key])
 
+    def do_count(self, line):
+        """ counts the number of instances of the class passed: 'line'"""
+        arg = line.split(" ")
+        store = storage.all()
+        count = 0
 
+        if len(arg) > 0 and arg[0] not in HBNBCommand.class_list:
+            print("** class doesn't exist **")
+        else:
+            key = arg[0]
+            for item in store:
+                if key in item:
+                    count += 1
+            print(count)
 
-    def do_update(self, args):
-        error = HBNBCommand.handle_errors(args, com="update")
-
-        if error:
+    def do_update(self, line):
+        """ Updates an instance based on the class name and
+        id by adding or updating attribute (save the change
+        into the JSON file). """
+        err = HBNBCommand.error_handler(line, command="update")
+        if err:
             return
-
-        args = args.split()
-        class_name = args[0]
-        id = args[1]
-        attr_name = args[2]
-        attr_value = args[3]
-
-        if "\"" in attr_value:
-            atrr_value = attr_value[1:-1]
-
-
-        if attr_value.isdigit():
-            attr_value = int(attr_value)
-
-        objects = storage.all()
-        key = f"{class_name}.{id}"
-
-        for k in objects:
+        args = line.split()
+        store = storage.all()
+        key = "{}.{}".format(args[0], args[1])
+        arg3 = args[3]
+        arg2 = args[2]
+        arg2 = arg2.strip('"')
+        arg2 = arg2.strip("'")
+        if (arg3).isdigit():
+            arg3 = int(arg3)
+        else:
+            arg3 = arg3.strip('"')
+            arg3 = arg3.strip("'")
+        for k in store:
             if k == key:
-                obj = objects[k]
-                setattr(obj, attr_name, attr_value)
-                obj.save()
+                setattr(store[key], arg2, arg3)
+                store[key].save()
                 return
+        print("** instance not found **")
 
-        print("** instance id not found **")
 
-
-if __name__=="__main__":
-    HBNBCommand().cmdloop
+if __name__ == '__main__':
+    HBNBCommand().cmdloop()
